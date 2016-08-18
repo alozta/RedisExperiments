@@ -25,6 +25,27 @@ public abstract class Entry {
         return p.trim();
     }
 
+    /**
+     * @return MMSI id
+     * */
+    public String getMMSI(){
+        return values.get(0);
+    }
+
+    /**
+     *
+     * */
+    public String getLat(){
+        return values.get(1);
+    }
+
+    /**
+     *
+     * */
+    public String getLon(){
+        return values.get(2);
+    }
+
     //*************************ENTRY MANIPULATION METHODS HERE************************
     //********************************************************************************
     //getLocation, getTime, etc.

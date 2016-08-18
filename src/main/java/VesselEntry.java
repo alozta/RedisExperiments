@@ -1,16 +1,22 @@
 import redis.clients.jedis.Jedis;
 
-import java.util.Date;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Created by alozta on 8/17/16.
  */
 public class VesselEntry extends Entry {
 
-    static String SORTED_SET_KEY = "vessels";
+    //**************************************************************************************
+
+    //**************************************************************************************
+
+    //**************************************************************************************
+    //Redis configurations
+    static String SORTED_SET_KEY = "mmsi";
     static String IP="localhost";
     static Jedis JEDIS = new Jedis(IP);
+    //**************************************************************************************
 
 
     //***************************************************************************************
@@ -20,7 +26,23 @@ public class VesselEntry extends Entry {
      * */
     public VesselEntry(String value){
         super(value);
-        JEDIS.zadd(SORTED_SET_KEY, Double.parseDouble(""+new Date().getTime()), getFields());
+        //                                                                                  SECONDS
+        JEDIS.zadd(SORTED_SET_KEY, (int)Math.round(Double.parseDouble(""+new Date().getTime())/1000), getMMSI());     //ADD ID TO SORTED SET
+        Map<String,String> map = new HashMap<String,String>();
+        map.put("lat", getLat());
+        map.put("lon", getLon());                                                               //GET ID PROPS INTO MAP
+        //additional properties
+        JEDIS.hmset(getMMSI(), map);                                                            //STORE ID & PROPS IN HASH
+    }
+
+    public static Set<String> getLastNMinutes(int N){
+        int time=(int)Math.round(Double.parseDouble(""+new Date().getTime())/1000);
+        //                                        now in seconds, N minutes before
+        return JEDIS.zrevrangeByScore(SORTED_SET_KEY, time, time-60*N);
+    }
+
+    public static Map<String, String> hGetAll(String id){
+        return JEDIS.hgetAll(id);
     }
 
     /**
@@ -64,8 +86,8 @@ public class VesselEntry extends Entry {
      *
      * ZREVRANGEBYSCORE
      * */
-    public static Set<String> getReverseRangeByScore(double min, double max) {
-        return JEDIS.zrevrangeByScore(SORTED_SET_KEY,min,max);
+    public static Set<String> getReverseRangeByScore(double max, double min) {
+        return JEDIS.zrevrangeByScore(SORTED_SET_KEY,max,min);
     }
     //*************************************************************************
 
