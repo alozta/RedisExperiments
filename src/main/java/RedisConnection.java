@@ -54,7 +54,17 @@ public class RedisConnection {
         JEDIS.hset(getMMSI(query), getField(query), getValue(query));
     }
 
-    public RedisConnection(){}
+    /**
+     * @param field Field of hash
+     * @param key Key of hash
+     * @param value Value of hash
+     * */
+    public void add(String key, String field, String value){
+        JEDIS.zadd(SORTED_SET_KEY, (int)Math.round(Double.parseDouble(""+new Date().getTime())/1000), key);
+        JEDIS.hset(key, field, value);
+    }
+
+    private RedisConnection(){}
 
 
     //***************************************************************************************
