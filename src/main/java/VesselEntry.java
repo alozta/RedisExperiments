@@ -5,35 +5,72 @@ import java.util.*;
 /**
  * Created by alozta on 8/17/16.
  */
-public class VesselEntry extends Entry {
+public class VesselEntry {
 
-    //**************************************************************************************
-
-    //**************************************************************************************
+    private static VesselEntry ve;
 
     //**************************************************************************************
     //Redis configurations
-    static String SORTED_SET_KEY = "mmsi";
-    static String IP="localhost";
-    static Jedis JEDIS = new Jedis(IP);
+    private static String SORTED_SET_KEY = "mmsi";
+    private static String IP="localhost";
+    private static Jedis JEDIS = new Jedis(IP);
     //**************************************************************************************
+
+    /**
+     * SINGLETON CONSTRUCTOR
+     * */
+    public static VesselEntry getInstance(){
+        if(ve==null){
+            ve = new VesselEntry();
+        }
+        return ve;
+    }
+
+    /**
+     * Adds entry both SORTED SET and the SET
+     *
+     * @param value Redis add query
+     * */
+    public void addEntry(String value){
+        //                                                                                  SECONDS
+        JEDIS.zadd(SORTED_SET_KEY, (int)Math.round(Double.parseDouble(""+new Date().getTime())/1000), getMMSI(value));     //ADD ID TO SORTED SET
+        Map<String,String> map = new HashMap<String,String>();
+        map.put("lat", getLat(value));
+        map.put("lon", getLon(value));                                                               //GET ID PROPS INTO MAP
+        //additional properties
+        JEDIS.hmset(getMMSI(value), map);                                                            //STORE ID & PROPS IN HASH
+    }
+
+    public VesselEntry(){}
 
 
     //***************************************************************************************
-    //REDIS COMMAND EQUIVALENTS
+    //It's assumed it's in this order. ORDER CAN BE CHANGED AND MANIPULATED
     /**
-     * ZADD
+     * @return MMSI id
      * */
-    public VesselEntry(String value){
-        super(value);
-        //                                                                                  SECONDS
-        JEDIS.zadd(SORTED_SET_KEY, (int)Math.round(Double.parseDouble(""+new Date().getTime())/1000), getMMSI());     //ADD ID TO SORTED SET
-        Map<String,String> map = new HashMap<String,String>();
-        map.put("lat", getLat());
-        map.put("lon", getLon());                                                               //GET ID PROPS INTO MAP
-        //additional properties
-        JEDIS.hmset(getMMSI(), map);                                                            //STORE ID & PROPS IN HASH
+    public String getMMSI(String value){
+        return value.split(" ")[0];
     }
+
+    /**
+     *
+     * */
+    public String getLat(String value){
+        return value.split(" ")[1];
+    }
+
+    /**
+     *
+     * */
+    public String getLon(String value){
+        return value.split(" ")[2];
+    }
+    //***************************************************************************************
+
+
+    //***************************************************************************************
+    //REDIS COMMAND EQUIVALENTS, some of them is unnecessary
 
     public static Set<String> getLastNMinutes(int N){
         int time=(int)Math.round(Double.parseDouble(""+new Date().getTime())/1000);

@@ -12,10 +12,12 @@ public class RedisTest {
 
     public static void main(String[] args) {
 
+        VesselEntry ve = VesselEntry.getInstance();
+
         Random r = new Random();
         for(int i=0; i<5; ++i){
-            //                          MMSI                                        LAT         LONG
-            new VesselEntry((new Integer(r.nextInt(100000000)+1)).toString() + " 29.454563 44.332134" );      //random mmsi's
+            //                     MMSI                                        LAT         LONG
+            ve.addEntry((new Integer(r.nextInt(100000000)+1)).toString() + " 29.454563 44.332134" );      //random mmsi's
         }
 
         System.out.println(VesselEntry.getReverseRangeByScore(Double.MAX_VALUE, 0));
