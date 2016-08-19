@@ -5,9 +5,9 @@ import java.util.*;
 /**
  * Created by alozta on 8/17/16.
  */
-public class VesselEntry {
+public class RedisConnection {
 
-    private static VesselEntry ve;
+    private static RedisConnection ve;
 
     //**************************************************************************************
     //Redis configurations
@@ -19,9 +19,9 @@ public class VesselEntry {
     /**
      * SINGLETON CONSTRUCTOR
      * */
-    public static VesselEntry getInstance(){
+    public static RedisConnection getInstance(){
         if(ve==null){
-            ve = new VesselEntry();
+            ve = new RedisConnection();
         }
         return ve;
     }
@@ -29,19 +29,32 @@ public class VesselEntry {
     /**
      * Adds entry both SORTED SET and the SET
      *
-     * @param value Redis add query
+     * @param query Redis add query, key field value, THE METHOD EXPECTS ONLY ONE FIELD AND ONE VALUE
      * */
-    public void addEntry(String value){
-        //                                                                                  SECONDS
-        JEDIS.zadd(SORTED_SET_KEY, (int)Math.round(Double.parseDouble(""+new Date().getTime())/1000), getMMSI(value));     //ADD ID TO SORTED SET
+    public void add(String query){
+        if(query.split(" ").length!=3){
+            System.out.println("ILLEGAL INPUT: " + query);
+            return;
+        }
+
+        //      1-)the most up-to-date key time will be held in sorted set                  SECONDS
+        JEDIS.zadd(SORTED_SET_KEY, (int)Math.round(Double.parseDouble(""+new Date().getTime())/1000), getMMSI(query));     //ADD ID TO SORTED SET
+
+        /* MULTIPLE FIELD INPUT HERE
         Map<String,String> map = new HashMap<String,String>();
         map.put("lat", getLat(value));
         map.put("lon", getLon(value));                                                               //GET ID PROPS INTO MAP
         //additional properties
+        //...
         JEDIS.hmset(getMMSI(value), map);                                                            //STORE ID & PROPS IN HASH
+        */
+
+        //SINGLE FIELD INPUT
+        //2-) the rest will be held in hash
+        JEDIS.hset(getMMSI(query), getField(query), getValue(query));
     }
 
-    public VesselEntry(){}
+    public RedisConnection(){}
 
 
     //***************************************************************************************
@@ -49,35 +62,55 @@ public class VesselEntry {
     /**
      * @return MMSI id
      * */
-    public String getMMSI(String value){
+    private String getMMSI(String value){
         return value.split(" ")[0];
     }
 
     /**
      *
      * */
-    public String getLat(String value){
+    private String getField(String value){
         return value.split(" ")[1];
     }
 
     /**
      *
      * */
-    public String getLon(String value){
+    private String getValue(String value){
         return value.split(" ")[2];
     }
     //***************************************************************************************
 
 
     //***************************************************************************************
-    //REDIS COMMAND EQUIVALENTS, some of them is unnecessary
+    //REDIS COMMAND EQUIVALENTS, some of them is not used yet
 
+    /**
+     * Deletes hash fields
+     *
+     * @param key Hash key
+     * @param args Field names
+     * */
+    public static void delete(String key, String ... args){
+        JEDIS.hdel(key, args);
+    }
+
+    /**
+     * Returns last N minutes of input
+     *
+     * @param N Minutes
+     * */
     public static Set<String> getLastNMinutes(int N){
         int time=(int)Math.round(Double.parseDouble(""+new Date().getTime())/1000);
         //                                        now in seconds, N minutes before
         return JEDIS.zrevrangeByScore(SORTED_SET_KEY, time, time-60*N);
     }
 
+    /**
+     * Returns all hash fields and values
+     *
+     * @param id Hash key
+     * */
     public static Map<String, String> hGetAll(String id){
         return JEDIS.hgetAll(id);
     }
@@ -128,14 +161,22 @@ public class VesselEntry {
     }
     //*************************************************************************
 
+    /**
+     * Closes connections
+     * */
+    public static void close(){
+        JEDIS.close();
+        ve=null;
+    }
+
     //*************************************************************************
     //Mutator methods for local variables
     public static void setIP(String IP) {
-        VesselEntry.IP = IP;
+        RedisConnection.IP = IP;
     }
 
     public static void setSortedSetKey(String sortedSetKey) {
-        VesselEntry.SORTED_SET_KEY = sortedSetKey;
+        RedisConnection.SORTED_SET_KEY = sortedSetKey;
     }
     //*************************************************************************
 }

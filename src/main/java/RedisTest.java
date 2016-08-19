@@ -12,19 +12,24 @@ public class RedisTest {
 
     public static void main(String[] args) {
 
-        VesselEntry ve = VesselEntry.getInstance();
+        RedisConnection ve = RedisConnection.getInstance();
 
         Random r = new Random();
-        for(int i=0; i<5; ++i){
-            //                     MMSI                                        LAT         LONG
-            ve.addEntry((new Integer(r.nextInt(100000000)+1)).toString() + " 29.454563 44.332134" );      //random mmsi's
+        for(int i=1; i<6; ++i){
+            Integer key = new Integer(r.nextInt(100000000) + 1);
+            for(int j=1;j<10;++j){
+                if(i*j%5!=0) {              //TEST: leave some fields un-filled
+                    ve.add(key.toString() + " field" + j + " " + (new Integer(r.nextInt(100) + 1)).toString());      //add <key> <field> <value>
+                }
+            }
         }
 
-        System.out.println(VesselEntry.getReverseRangeByScore(Double.MAX_VALUE, 0));
-        System.out.println(VesselEntry.getLastNMinutes(6));
-        for(String s : VesselEntry.getLastNMinutes(6)){
-            System.out.println(VesselEntry.hGetAll(s));
+        System.out.println("List all (high score to low): " + RedisConnection.getReverseRangeByScore(Double.MAX_VALUE, 0));
+        System.out.println("Last N minutes: " + RedisConnection.getLastNMinutes(6));
+        for(String s : RedisConnection.getLastNMinutes(6)){
+            System.out.println(RedisConnection.hGetAll(s));
         }
 
+        RedisConnection.close();
     }
 }
