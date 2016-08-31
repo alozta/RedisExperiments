@@ -14,7 +14,7 @@ public class RedisTest {
 
         RedisConnection ve = RedisConnection.getInstance();
 
-        Random r = new Random();
+        /*Random r = new Random();
         for(int i=1; i<6; ++i){
             Integer key = new Integer(r.nextInt(100000000) + 1);
             for(int j=1;j<10;++j){
@@ -22,13 +22,16 @@ public class RedisTest {
                     ve.add(key.toString() + " field" + j + " " + (new Integer(r.nextInt(100) + 1)).toString());      //add <key> <field> <value>
                 }
             }
-        }
+        }*/
 
-        System.out.println("List all (high score to low): " + RedisConnection.getReverseRangeByScore(Double.MAX_VALUE, 0));
+        //ve.publish(RedisConnection.getCHANNELS().get(0), "hello from intelliJ");
+        ve.subscribe(RedisConnection.getCHANNELS().toArray(new String[RedisConnection.getCHANNELS().size()]));
+
+        /*System.out.println("List all (high score to low): " + RedisConnection.getReverseRangeByScore(Double.MAX_VALUE, 0));
         System.out.println("Last N minutes: " + RedisConnection.getLastNMinutes(6));
         for(String s : RedisConnection.getLastNMinutes(6)){
             System.out.println(RedisConnection.hGetAll(s));
-        }
+        }*/
 
         RedisConnection.close();
     }

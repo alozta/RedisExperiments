@@ -1,6 +1,6 @@
 <component name="ArtifactManager">
   <artifact type="jar" name="RedisExperiments:jar">
-    <output-path>$PROJECT_DIR$/RedisConnection</output-path>
+    <output-path>$PROJECT_DIR$</output-path>
     <root id="archive" name="RedisExperiments.jar">
       <element id="module-output" name="RedisExperiments" />
       <element id="extracted-dir" path="$MAVEN_REPOSITORY$/redis/clients/jedis/2.7.3/jedis-2.7.3.jar" path-in-jar="/" />

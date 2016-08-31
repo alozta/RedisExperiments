@@ -1,6 +1,8 @@
 import redis.clients.jedis.Jedis;
+import redis.clients.jedis.JedisPubSub;
 
 import java.util.*;
+import java.util.concurrent.CountDownLatch;
 
 /**
  * Created by alozta on 8/17/16.
@@ -14,6 +16,10 @@ public class RedisConnection {
     private static String SORTED_SET_KEY = "mmsi";
     private static String IP="localhost";
     private static Jedis JEDIS = new Jedis(IP);
+    private static List<String> CHANNELS = new ArrayList<String>(){{add("redisChannel");}};
+    private CountDownLatch messageReceivedLatch = new CountDownLatch(1);
+    private CountDownLatch publishLatch = new CountDownLatch(1);
+    private List<String> messageContainer = new ArrayList<String>();
     //**************************************************************************************
 
     /**
@@ -25,6 +31,90 @@ public class RedisConnection {
         }
         return ve;
     }
+
+    //***************************************************************************************
+    //REDIS PUBSUB
+
+    /**
+     * Redis publisher
+     * Redis equivalent: PUBLISH CHANNEL MESSAGE
+     *
+     * @param channel Channel name to publish
+     * @param msg Message to be published
+     * */
+    public void publish(final String channel, final String msg) {
+        /*log("Connecting");
+        log("Waiting to publish");
+        log("Ready to publish, waiting one sec");*/
+        log("publishing " + msg + " on channel " + channel);
+        JEDIS.publish(channel, msg);
+        // publish away!
+        publishLatch.countDown();
+        //log("published, closing publishing connection");
+        JEDIS.quit();
+        //log("publishing connection closed");
+    }
+
+    /**
+     * Redis subscriber
+     * Redis equivalent: SUBSCRIBE CHANNELS[...]
+     *
+     * @param args Channels to be subscribed
+     * post: Holds the messages in the List named messageContainer.
+     * */
+    public JedisPubSub subscribe( String ... args) {
+        final JedisPubSub jedisPubSub = new JedisPubSub() {
+            @Override
+            public void onUnsubscribe(String channel, int subscribedChannels) {
+                log("onUnsubscribe");
+            }
+
+            @Override
+            public void onSubscribe(String channel, int subscribedChannels) {
+                log("onSubscribe");
+            }
+
+            @Override
+            public void onPUnsubscribe(String pattern, int subscribedChannels) {
+            }
+
+            @Override
+            public void onPSubscribe(String pattern, int subscribedChannels) {
+            }
+
+            @Override
+            public void onPMessage(String pattern, String channel, String message) {
+            }
+
+            @Override
+            public void onMessage(String channel, String message) {
+                messageContainer.add(message);
+                log("Message received: "+ message);
+                //log("Messages: "+ messageContainer.toString());
+                messageReceivedLatch.countDown();
+            }
+        };
+
+        //log("Connecting");
+        //log("subscribing");
+        JEDIS.subscribe(jedisPubSub, args);
+        //log("subscribe returned, closing down");
+        JEDIS.quit();
+
+        return jedisPubSub;
+    }
+
+    static final long startMillis = System.currentTimeMillis();     //System up-time in ms
+
+    /**
+     * Logs the strings with system up-time.
+     * */
+    private static void log(String string, Object... args) {
+        long millisSinceStart = System.currentTimeMillis() - startMillis;
+        System.out.printf("%20s %6d %s\n", Thread.currentThread().getName(), millisSinceStart,
+                String.format(string, args));
+    }
+    //***************************************************************************************
 
     /**
      * Adds entry both SORTED SET and the SET
@@ -188,5 +278,22 @@ public class RedisConnection {
     public static void setSortedSetKey(String sortedSetKey) {
         RedisConnection.SORTED_SET_KEY = sortedSetKey;
     }
+
+    public static List<String> getCHANNELS() {
+        return CHANNELS;
+    }
+
+    public static void addChannel(String channel){
+        CHANNELS.add(channel);
+    }
+
+    public static void changeChannelName(int i, String newChannelName){
+        CHANNELS.add(i,newChannelName);
+    }
+
+    public static void removeChannel(Object o){
+        CHANNELS.remove(o);
+    }
+
     //*************************************************************************
 }
