@@ -7,9 +7,9 @@ import java.util.concurrent.CountDownLatch;
 /**
  * Created by alozta on 8/17/16.
  */
-public class RedisConnection {
+public class iRedis {
 
-    private static RedisConnection ve;
+    private static iRedis ve;
 
     //**************************************************************************************
     //Redis configurations
@@ -17,17 +17,17 @@ public class RedisConnection {
     private static String IP="localhost";
     private static Jedis JEDIS = new Jedis(IP);
     private static List<String> CHANNELS = new ArrayList<String>(){{add("redisChannel");}};
-    private CountDownLatch messageReceivedLatch = new CountDownLatch(1);
-    private CountDownLatch publishLatch = new CountDownLatch(1);
-    private List<String> messageContainer = new ArrayList<String>();
+    private static CountDownLatch messageReceivedLatch = new CountDownLatch(1);
+    private static CountDownLatch publishLatch = new CountDownLatch(1);
+    private static List<String> messageContainer = new ArrayList<String>();
     //**************************************************************************************
 
     /**
      * SINGLETON CONSTRUCTOR
      * */
-    public static RedisConnection getInstance(){
+    public static iRedis getInstance(){
         if(ve==null){
-            ve = new RedisConnection();
+            ve = new iRedis();
         }
         return ve;
     }
@@ -56,13 +56,30 @@ public class RedisConnection {
     }
 
     /**
+     * Runs subscriber as a thread because of its io blocking status.
+     * */
+    public void subscribeThread(final String ... args){
+        new Thread(new Runnable() {
+            public void run() {
+                try {
+                    //JEDIS.subscribe(jedisPubSub, args);
+                    //JEDIS.quit();
+                    subscribe(args);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }, "subscriberThread").start();
+    }
+
+    /**
      * Redis subscriber
      * Redis equivalent: SUBSCRIBE CHANNELS[...]
      *
      * @param args Channels to be subscribed
      * post: Holds the messages in the List named messageContainer.
      * */
-    public JedisPubSub subscribe( String ... args) {
+    private JedisPubSub subscribe( String ... args) {
         final JedisPubSub jedisPubSub = new JedisPubSub() {
             @Override
             public void onUnsubscribe(String channel, int subscribedChannels) {
@@ -95,11 +112,22 @@ public class RedisConnection {
             }
         };
 
-        //log("Connecting");
-        //log("subscribing");
-        JEDIS.subscribe(jedisPubSub, args);
-        //log("subscribe returned, closing down");
-        JEDIS.quit();
+        if(ve==null){
+            System.out.println("Thread exited.");
+            System.exit(1);
+        }else {
+            //log("Connecting");
+            //log("subscribing");
+            try {
+                JEDIS.subscribe(jedisPubSub, args);
+            } catch (redis.clients.jedis.exceptions.JedisConnectionException e){
+                //e.printStackTrace();
+                System.out.println("Thread exited.");
+                System.exit(1);
+            }
+            //log("subscribe returned, closing down");
+            JEDIS.quit();
+        }
 
         return jedisPubSub;
     }
@@ -154,7 +182,7 @@ public class RedisConnection {
         JEDIS.hset(key, field, value);
     }
 
-    private RedisConnection(){}
+    private iRedis(){}
 
 
     //***************************************************************************************
@@ -272,11 +300,11 @@ public class RedisConnection {
     //*************************************************************************
     //Mutator methods for local variables
     public static void setIP(String IP) {
-        RedisConnection.IP = IP;
+        iRedis.IP = IP;
     }
 
     public static void setSortedSetKey(String sortedSetKey) {
-        RedisConnection.SORTED_SET_KEY = sortedSetKey;
+        iRedis.SORTED_SET_KEY = sortedSetKey;
     }
 
     public static List<String> getCHANNELS() {
@@ -293,6 +321,12 @@ public class RedisConnection {
 
     public static void removeChannel(Object o){
         CHANNELS.remove(o);
+    }
+
+    public static List<String> getMessageContainer() {
+        List<String> list = messageContainer;
+        messageContainer=new ArrayList<String>();
+        return list;
     }
 
     //*************************************************************************

@@ -12,7 +12,7 @@ public class RedisTest {
 
     public static void main(String[] args) {
 
-        RedisConnection ve = RedisConnection.getInstance();
+        iRedis ve = iRedis.getInstance();
 
         /*Random r = new Random();
         for(int i=1; i<6; ++i){
@@ -25,7 +25,7 @@ public class RedisTest {
         }*/
 
         //ve.publish(RedisConnection.getCHANNELS().get(0), "hello from intelliJ");
-        ve.subscribe(RedisConnection.getCHANNELS().toArray(new String[RedisConnection.getCHANNELS().size()]));
+        ve.subscribeThread(iRedis.getCHANNELS().toArray(new String[iRedis.getCHANNELS().size()]));
 
         /*System.out.println("List all (high score to low): " + RedisConnection.getReverseRangeByScore(Double.MAX_VALUE, 0));
         System.out.println("Last N minutes: " + RedisConnection.getLastNMinutes(6));
@@ -33,6 +33,16 @@ public class RedisTest {
             System.out.println(RedisConnection.hGetAll(s));
         }*/
 
-        RedisConnection.close();
+        //test for thread input
+        for(int i=1; i<3; ++i) {
+            try {
+                Thread.sleep(10000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            System.out.println(iRedis.getMessageContainer());
+        }
+        iRedis.close();
+        System.out.println("main thread ended.");
     }
 }
